@@ -16,12 +16,18 @@ class ExtractionService:
     """Coordinates PDF parsing and exporting."""
 
     def __init__(self, parsers: Optional[Iterable[BaseParser]] = None) -> None:
+        self.openai_parser: Optional[OpenAIParser] = None
+
         if parsers is not None:
             self.parsers: List[BaseParser] = list(parsers)
+            for parser in self.parsers:
+                if isinstance(parser, OpenAIParser) and parser.is_available():
+                    self.openai_parser = parser
         else:
             openai_parser = OpenAIParser()
             self.parsers = []
             if openai_parser.is_available():
+                self.openai_parser = openai_parser
                 self.parsers.append(openai_parser)
             self.parsers.append(HeuristicParser())
 
@@ -54,3 +60,8 @@ class ExtractionService:
                 ]
             )
         return buffer.getvalue()
+
+    def openai_status(self) -> tuple[bool, str]:
+        if not self.openai_parser:
+            return False, "OpenAI parser unavailable. Set OPENAI_API_KEY to enable it."
+        return self.openai_parser.check_connectivity()

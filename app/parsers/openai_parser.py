@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Tuple
 
 from app.models.transaction import Transaction
 
@@ -29,6 +29,28 @@ class OpenAIParser(BaseParser):
 
     def is_available(self) -> bool:
         return self.client is not None
+
+    def check_connectivity(self) -> Tuple[bool, str]:
+        """Verify that the OpenAI client can communicate with the API."""
+
+        if not self.client:
+            return False, "OpenAI client is not configured. Check OPENAI_API_KEY."
+
+        try:
+            models_api = getattr(self.client, "models", None)
+            if models_api is None:
+                raise AttributeError("models API not available on OpenAI client")
+
+            if hasattr(models_api, "retrieve"):
+                models_api.retrieve(self.model)
+            elif hasattr(models_api, "list"):
+                models_api.list()
+            else:
+                raise AttributeError("models API does not expose retrieve or list methods")
+        except Exception as exc:  # pragma: no cover - depends on external service
+            return False, f"OpenAI connectivity check failed: {exc}"
+
+        return True, f"Connected to OpenAI (model '{self.model}')."
 
     def parse(self, pdf_bytes: bytes) -> List[Transaction]:
         if not self.client:
