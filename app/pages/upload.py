@@ -16,15 +16,38 @@ class UploadPage:
         self.service = ExtractionService()
         self.transactions: List[Transaction] = []
         self.result_message = ui.label().props("class=mb-2")
-        self.table = ui.table(
+        columns = [
             {
-                "trans_date": "Trans Date",
-                "post_date": "Post Date",
-                "reference_number": "Reference Number",
-                "description": "Description",
-                "amount": "Amount",
+                "name": "trans_date",
+                "label": "Trans Date",
+                "field": "trans_date",
             },
+            {
+                "name": "post_date",
+                "label": "Post Date",
+                "field": "post_date",
+            },
+            {
+                "name": "reference_number",
+                "label": "Reference Number",
+                "field": "reference_number",
+            },
+            {
+                "name": "description",
+                "label": "Description",
+                "field": "description",
+            },
+            {
+                "name": "amount",
+                "label": "Amount",
+                "field": "amount",
+            },
+        ]
+
+        self.table = ui.table(
+            columns=columns,
             rows=[],
+            row_key="reference_number",
         ).classes("w-full")
 
         with ui.row():
