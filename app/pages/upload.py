@@ -69,7 +69,8 @@ class UploadPage:
         except Exception as exc:  # pragma: no cover - UI error path
             self.transactions = []
             self.table.update_rows([])
-            self.result_message.set_text(f"Extraction failed: {exc}").props("color=negative")
+            self.result_message.set_text(f"Extraction failed: {exc}")
+            self.result_message.props("color=negative")
             return
 
         self.transactions = result.transactions
@@ -78,7 +79,8 @@ class UploadPage:
         message = f"{len(self.transactions)} transactions extracted using {parser_label} parser."
         if result.errors:
             message += f" Fallback messages: {'; '.join(result.errors)}"
-        self.result_message.set_text(message).props("color=positive")
+        self.result_message.set_text(message)
+        self.result_message.props("color=positive")
 
     def download_json(self) -> None:
         if not self.transactions:
