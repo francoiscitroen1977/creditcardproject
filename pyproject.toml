@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "creditcardproject"
 version = "0.1.0"
-description = "Credit card statement extractor built with NiceGUI and OpenAI"
+description = "Credit card statement extractor built with NiceGUI"
 authors = [{name = "Your Name"}]
 readme = "README.md"
 requires-python = ">=3.10"
@@ -16,7 +16,6 @@ dependencies = [
     "PyPDF2>=3.0",
     "pillow>=10.0",
     "pymupdf>=1.23",
-    "openai>=1.12",
 ]
 
 [tool.setuptools.packages.find]
