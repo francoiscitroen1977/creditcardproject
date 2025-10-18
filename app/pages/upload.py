@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import List
+from io import BytesIO
+from pathlib import Path
+from typing import List, Optional
 
 from nicegui import ui
 from nicegui.events import UploadEventArguments
@@ -57,25 +59,8 @@ class UploadPage:
         ui.upload(on_upload=self.handle_upload, label="Upload PDF Statement", auto_upload=True)
 
     async def handle_upload(self, e: UploadEventArguments) -> None:
-        pdf_bytes: bytes
-
-        if hasattr(e, "content"):
-            content = e.content
-            if hasattr(content, "read"):
-                pdf_bytes = content.read()
-                try:
-                    content.seek(0)
-                except Exception:  # pragma: no cover - in-memory uploads
-                    pass
-            elif isinstance(content, (bytes, bytearray)):
-                pdf_bytes = bytes(content)
-            else:  # pragma: no cover - defensive
-                pdf_bytes = bytes(content)
-        elif hasattr(e, "read"):
-            pdf_bytes = await e.read()
-            if not isinstance(pdf_bytes, (bytes, bytearray)):
-                pdf_bytes = bytes(pdf_bytes)
-        else:  # pragma: no cover - defensive
+        pdf_bytes = await self._read_event_bytes(e)
+        if pdf_bytes is None:  # pragma: no cover - defensive
             raise AttributeError("Upload event does not provide file content")
 
         try:
@@ -107,6 +92,61 @@ class UploadPage:
             return
         content = self.service.to_csv(self.transactions)
         ui.download(content.encode("utf-8"), filename="transactions.csv")
+
+    async def _read_event_bytes(self, e: UploadEventArguments) -> Optional[bytes]:
+        content = getattr(e, "content", None)
+        if content is not None:
+            if hasattr(content, "read"):
+                data = content.read()
+                try:
+                    content.seek(0)
+                except Exception:  # pragma: no cover - in-memory uploads
+                    pass
+                return data if isinstance(data, (bytes, bytearray)) else bytes(data)
+            if isinstance(content, (bytes, bytearray)):
+                return bytes(content)
+            return bytes(content)
+
+        file_obj = getattr(e, "file", None)
+        if file_obj is not None and hasattr(file_obj, "read"):
+            data = file_obj.read()
+            try:
+                file_obj.seek(0)
+            except Exception:  # pragma: no cover - in-memory uploads
+                pass
+            return data if isinstance(data, (bytes, bytearray)) else bytes(data)
+
+        files = getattr(e, "files", None)
+        if files:
+            first = files[0]
+            if hasattr(first, "read"):
+                data = first.read()
+                try:
+                    first.seek(0)
+                except Exception:  # pragma: no cover - in-memory uploads
+                    pass
+                return data if isinstance(data, (bytes, bytearray)) else bytes(data)
+
+        path = getattr(e, "path", None)
+        if path:
+            try:
+                return Path(path).read_bytes()
+            except Exception:  # pragma: no cover - defensive
+                pass
+
+        if hasattr(e, "read"):
+            data = await e.read()
+            return data if isinstance(data, (bytes, bytearray)) else bytes(data)
+
+        if hasattr(e, "save"):
+            buffer = BytesIO()
+            try:
+                await e.save(buffer)
+                return buffer.getvalue()
+            except Exception:  # pragma: no cover - defensive
+                return None
+
+        return None
 
 
 def create_page() -> None:
