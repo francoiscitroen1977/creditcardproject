@@ -1,4 +1,4 @@
-# Credit Card Statement Extractor (NiceGUI + OpenAI)
+# Credit Card Statement Extractor (NiceGUI)
 
 Upload a PDF credit card statement and extract **paid transactions** into JSON/CSV.
 
@@ -7,19 +7,14 @@ Rows **without Amount** are ignored.
 
 ## Why this repo?
 - Clean separation of UI, services, parsers, and models
-- **OpenAI-based** parsing (no Tesseract). API key is read from `.env`
-- Optional heuristic fallback for local parsing without a key
+- Heuristic parser that works entirely locally (no third-party APIs)
 
 ## Quickstart
 ```bash
 # 1) Create your venv and install deps
 pip install -e .
 
-# 2) Add your API key
-cp .env.example .env
-# create .env with your OPENAI_API_KEY = 1234 and OPENAI_MODEL
-
-# 3) Run
+# 2) Run
 python -m app.main  # or: uvicorn app.main:fastapi_app --reload
 ```
 
@@ -28,11 +23,11 @@ Then open http://localhost:8080
 ## Structure
 - `app/pages` NiceGUI pages
 - `app/services` orchestration (validation, exports)
-- `app/parsers` extraction strategies (OpenAI + heuristic fallback)
+- `app/parsers` extraction strategies (heuristic parser)
 - `app/models` Pydantic schemas
 - `app/utils` PDF helpers
 - `data/outputs` exports (gitignored)
 
 ## Notes
 - Put test PDFs in `data/samples/` (avoid committing sensitive files).
-- Extraction prefers OpenAI when `OPENAI_API_KEY` is present; otherwise uses heuristic fallback.
+- All parsing happens locally using heuristics, so no API keys are required.

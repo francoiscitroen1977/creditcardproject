@@ -9,14 +9,12 @@ from app.models.extraction import ExtractionResult
 from app.models.transaction import Transaction
 from app.parsers.base import BaseParser, ParserError
 from app.parsers.heuristic_parser import HeuristicParser
-from app.parsers.openai_parser import OpenAIParser
 
 
 class ExtractionService:
     """Coordinates PDF parsing and exporting."""
 
     def __init__(self, parsers: Optional[Iterable[BaseParser]] = None, default_parser_name: str = "heuristic") -> None:
-        self.openai_parser: Optional[OpenAIParser] = None
         self._parsers_by_name: dict[str, BaseParser] = {}
         self.selected_parser_name: str = default_parser_name
 
@@ -25,16 +23,9 @@ class ExtractionService:
             for parser in provided_parsers:
                 name = parser.name.lower()
                 self._parsers_by_name[name] = parser
-                if isinstance(parser, OpenAIParser) and parser.is_available():
-                    self.openai_parser = parser
         else:
             heuristic_parser = HeuristicParser()
             self._parsers_by_name[heuristic_parser.name.lower()] = heuristic_parser
-
-            openai_parser = OpenAIParser()
-            if openai_parser.is_available():
-                self.openai_parser = openai_parser
-                self._parsers_by_name[openai_parser.name.lower()] = openai_parser
 
         if self.selected_parser_name not in self._parsers_by_name:
             # fall back to heuristic parser if the desired default isn't available
@@ -89,7 +80,3 @@ class ExtractionService:
             )
         return buffer.getvalue()
 
-    def openai_status(self) -> tuple[bool, str]:
-        if not self.openai_parser:
-            return False, "OpenAI parser unavailable. Set OPENAI_API_KEY to enable it."
-        return self.openai_parser.check_connectivity()

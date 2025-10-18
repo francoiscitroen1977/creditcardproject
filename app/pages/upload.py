@@ -19,7 +19,6 @@ class UploadPage:
     def __init__(self) -> None:
         self.service = ExtractionService()
         self.transactions: List[Transaction] = []
-        self.openai_status = ui.label().props("class=mb-2")
         self.result_message = ui.label().props("class=mb-2")
         self.parser_select = ui.select(
             options=self._parser_options(),
@@ -66,8 +65,6 @@ class UploadPage:
             ui.button("Download CSV", on_click=self.download_csv)
 
         ui.upload(on_upload=self.handle_upload, label="Upload PDF Statement", auto_upload=True)
-
-        self._update_openai_status()
 
     async def handle_upload(self, e: UploadEventArguments) -> None:
         pdf_bytes = await self._read_event_bytes(e)
@@ -145,12 +142,6 @@ class UploadPage:
                 return None
 
         return None
-
-    def _update_openai_status(self) -> None:
-        ok, message = self.service.openai_status()
-        self.openai_status.set_text(message)
-        color = "positive" if ok else "negative"
-        self.openai_status.props(f"color={color}")
 
     async def _read_stream(self, reader) -> Optional[bytes]:
         data = reader.read()
