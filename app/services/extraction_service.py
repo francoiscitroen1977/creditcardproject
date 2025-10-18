@@ -8,13 +8,13 @@ from typing import Iterable, List, Optional
 from app.models.extraction import ExtractionResult
 from app.models.transaction import Transaction
 from app.parsers.base import BaseParser, ParserError
-from app.parsers.heuristic_parser import HeuristicParser
+from app.parsers.statement_parser import StatementParser
 
 
 class ExtractionService:
     """Coordinates PDF parsing and exporting."""
 
-    def __init__(self, parsers: Optional[Iterable[BaseParser]] = None, default_parser_name: str = "heuristic") -> None:
+    def __init__(self, parsers: Optional[Iterable[BaseParser]] = None, default_parser_name: str = "statement") -> None:
         self._parsers_by_name: dict[str, BaseParser] = {}
         self.selected_parser_name: str = default_parser_name
 
@@ -24,12 +24,12 @@ class ExtractionService:
                 name = parser.name.lower()
                 self._parsers_by_name[name] = parser
         else:
-            heuristic_parser = HeuristicParser()
-            self._parsers_by_name[heuristic_parser.name.lower()] = heuristic_parser
+            statement_parser = StatementParser()
+            self._parsers_by_name[statement_parser.name.lower()] = statement_parser
 
         if self.selected_parser_name not in self._parsers_by_name:
-            # fall back to heuristic parser if the desired default isn't available
-            self.selected_parser_name = "heuristic"
+            # fall back to the statement parser if the desired default isn't available
+            self.selected_parser_name = "statement"
 
         self._refresh_parser_order()
 

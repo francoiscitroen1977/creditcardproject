@@ -1,6 +1,6 @@
 """Parsers for extracting transactions from statements."""
 
 from .base import BaseParser, ParserError
-from .heuristic_parser import HeuristicParser
+from .statement_parser import StatementParser
 
-__all__ = ["BaseParser", "ParserError", "HeuristicParser"]
+__all__ = ["BaseParser", "ParserError", "StatementParser"]
