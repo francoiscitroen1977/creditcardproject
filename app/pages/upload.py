@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from io import BytesIO
 from pathlib import Path
 from typing import List, Optional
@@ -97,35 +98,20 @@ class UploadPage:
         content = getattr(e, "content", None)
         if content is not None:
             if hasattr(content, "read"):
-                data = content.read()
-                try:
-                    content.seek(0)
-                except Exception:  # pragma: no cover - in-memory uploads
-                    pass
-                return data if isinstance(data, (bytes, bytearray)) else bytes(data)
+                return await self._read_stream(content)
             if isinstance(content, (bytes, bytearray)):
                 return bytes(content)
             return bytes(content)
 
         file_obj = getattr(e, "file", None)
         if file_obj is not None and hasattr(file_obj, "read"):
-            data = file_obj.read()
-            try:
-                file_obj.seek(0)
-            except Exception:  # pragma: no cover - in-memory uploads
-                pass
-            return data if isinstance(data, (bytes, bytearray)) else bytes(data)
+            return await self._read_stream(file_obj)
 
         files = getattr(e, "files", None)
         if files:
             first = files[0]
             if hasattr(first, "read"):
-                data = first.read()
-                try:
-                    first.seek(0)
-                except Exception:  # pragma: no cover - in-memory uploads
-                    pass
-                return data if isinstance(data, (bytes, bytearray)) else bytes(data)
+                return await self._read_stream(first)
 
         path = getattr(e, "path", None)
         if path:
@@ -147,6 +133,18 @@ class UploadPage:
                 return None
 
         return None
+
+    async def _read_stream(self, reader) -> Optional[bytes]:
+        data = reader.read()
+        if inspect.isawaitable(data):
+            data = await data
+        if data is None:
+            return None
+        try:
+            reader.seek(0)
+        except Exception:  # pragma: no cover - in-memory uploads
+            pass
+        return data if isinstance(data, (bytes, bytearray)) else bytes(data)
 
 
 def create_page() -> None:
