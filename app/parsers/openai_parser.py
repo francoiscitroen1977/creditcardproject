@@ -143,13 +143,11 @@ class OpenAIParser(BaseParser):
 
         output = getattr(response, "output", None)
         if output:
-            first = output[0]
-            content = getattr(first, "content", None)
-            if content:
-                text = getattr(content[0], "text", None)
-                if text:
-                    return text
+            text = self._coerce_text(output)
+            if text:
+                return text
         text = getattr(response, "output_text", None)
+        text = self._coerce_text(text)
         if text:
             return text
         raise ParserError("Unexpected OpenAI responses payload")
@@ -166,11 +164,64 @@ class OpenAIParser(BaseParser):
         content = getattr(message, "content", None)
         if not content:
             raise ParserError("Chat completion message does not contain text")
-        if isinstance(content, str):
-            return content
-        # Some SDK versions return a list of content parts.
-        if isinstance(content, list) and content:
-            text = getattr(content[0], "text", None)
+        text = self._coerce_text(content)
+        if text:
+            return text
+        raise ParserError("Unable to extract text from chat completion response")
+
+    def _coerce_text(self, value: Any) -> Optional[str]:
+        """Best-effort conversion of structured SDK objects to plain text.
+
+        The OpenAI Python SDK returns different shapes depending on the
+        endpoint and version. Modern releases wrap text content in helper
+        classes that expose a ``value`` attribute, while others may provide
+        dictionaries or simple strings. This helper digs through the possible
+        wrappers until it finds a string value that we can feed into
+        ``json.loads``.
+        """
+
+        if value is None:
+            return None
+        if isinstance(value, str):
+            return value
+        if isinstance(value, list):
+            for item in value:
+                text = self._coerce_text(item)
+                if text:
+                    return text
+            return None
+        if isinstance(value, dict):
+            for key in ("value", "text", "content", "message"):
+                if key in value:
+                    text = self._coerce_text(value[key])
+                    if text:
+                        return text
+            return None
+
+        value_attr = getattr(value, "value", None)
+        if isinstance(value_attr, str):
+            return value_attr
+
+        text_attr = getattr(value, "text", None)
+        if text_attr is not None and text_attr is not value:
+            text = self._coerce_text(text_attr)
             if text:
                 return text
-        raise ParserError("Unable to extract text from chat completion response")
+
+        content_attr = getattr(value, "content", None)
+        if content_attr is not None and content_attr is not value:
+            text = self._coerce_text(content_attr)
+            if text:
+                return text
+
+        if hasattr(value, "to_dict"):
+            try:
+                data = value.to_dict()
+            except Exception:  # pragma: no cover - defensive
+                data = None
+            if isinstance(data, dict):
+                text = self._coerce_text(data)
+                if text:
+                    return text
+
+        return None
