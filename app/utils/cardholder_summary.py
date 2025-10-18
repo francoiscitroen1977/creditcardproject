@@ -8,7 +8,27 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Iterable, List, Optional
 
-import fitz  # PyMuPDF
+# NOTE: Some environments install the legacy ``fitz`` package instead of
+# ``PyMuPDF``.  The legacy package exposes a different API and does not provide
+# ``fitz.open`` which we rely on.  Try to import the modern PyMuPDF package and
+# gracefully fall back to ``pymupdf`` when necessary.
+try:  # pragma: no cover - import side effects only exercised at runtime
+    import fitz  # type: ignore[attr-defined]
+except ImportError:  # pragma: no cover - exercised when ``fitz`` is missing
+    try:
+        import pymupdf as fitz  # type: ignore[attr-defined]
+    except ImportError as exc:  # pragma: no cover - surfacing clear guidance
+        raise ImportError(
+            "PyMuPDF is required for PDF extraction; install the 'pymupdf' package"
+        ) from exc
+else:  # pragma: no cover - executed during normal runtime
+    if not hasattr(fitz, "open"):
+        try:
+            import pymupdf as fitz  # type: ignore[attr-defined]
+        except ImportError as exc:  # pragma: no cover - surfacing clear guidance
+            raise ImportError(
+                "PyMuPDF is required for PDF extraction; install the 'pymupdf' package"
+            ) from exc
 from PIL import Image
 
 # Section titles to detect relevant pages
