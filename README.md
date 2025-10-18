@@ -7,7 +7,7 @@ Rows **without Amount** are ignored.
 
 ## Why this repo?
 - Clean separation of UI, services, parsers, and models
-- Heuristic parser that works entirely locally (no third-party APIs)
+- Deterministic parser that works entirely locally (no third-party APIs)
 
 ## Quickstart
 ```bash
@@ -23,11 +23,11 @@ Then open http://localhost:8080
 ## Structure
 - `app/pages` NiceGUI pages
 - `app/services` orchestration (validation, exports)
-- `app/parsers` extraction strategies (heuristic parser)
+- `app/parsers` extraction strategies (statement parser)
 - `app/models` Pydantic schemas
 - `app/utils` PDF helpers
 - `data/outputs` exports (gitignored)
 
 ## Notes
 - Put test PDFs in `data/samples/` (avoid committing sensitive files).
-- All parsing happens locally using heuristics, so no API keys are required.
+- All parsing happens locally with a deterministic parser, so no API keys are required.
