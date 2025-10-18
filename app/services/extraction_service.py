@@ -15,21 +15,49 @@ from app.parsers.openai_parser import OpenAIParser
 class ExtractionService:
     """Coordinates PDF parsing and exporting."""
 
-    def __init__(self, parsers: Optional[Iterable[BaseParser]] = None) -> None:
+    def __init__(self, parsers: Optional[Iterable[BaseParser]] = None, default_parser_name: str = "heuristic") -> None:
         self.openai_parser: Optional[OpenAIParser] = None
+        self._parsers_by_name: dict[str, BaseParser] = {}
+        self.selected_parser_name: str = default_parser_name
 
         if parsers is not None:
-            self.parsers: List[BaseParser] = list(parsers)
-            for parser in self.parsers:
+            provided_parsers: List[BaseParser] = list(parsers)
+            for parser in provided_parsers:
+                name = parser.name.lower()
+                self._parsers_by_name[name] = parser
                 if isinstance(parser, OpenAIParser) and parser.is_available():
                     self.openai_parser = parser
         else:
+            heuristic_parser = HeuristicParser()
+            self._parsers_by_name[heuristic_parser.name.lower()] = heuristic_parser
+
             openai_parser = OpenAIParser()
-            self.parsers = []
             if openai_parser.is_available():
                 self.openai_parser = openai_parser
-                self.parsers.append(openai_parser)
-            self.parsers.append(HeuristicParser())
+                self._parsers_by_name[openai_parser.name.lower()] = openai_parser
+
+        if self.selected_parser_name not in self._parsers_by_name:
+            # fall back to heuristic parser if the desired default isn't available
+            self.selected_parser_name = "heuristic"
+
+        self._refresh_parser_order()
+
+    @property
+    def parser_options(self) -> List[str]:
+        return list(self._parsers_by_name.keys())
+
+    def set_active_parser(self, parser_name: str) -> None:
+        parser_key = parser_name.lower()
+        if parser_key not in self._parsers_by_name:
+            raise ParserError(f"Unknown parser: {parser_name}")
+        self.selected_parser_name = parser_key
+        self._refresh_parser_order()
+
+    def _refresh_parser_order(self) -> None:
+        selected = self._parsers_by_name.get(self.selected_parser_name)
+        remaining = [p for name, p in self._parsers_by_name.items() if name != self.selected_parser_name]
+        self.parsers = [selected] if selected else []
+        self.parsers.extend(remaining)
 
     def extract(self, pdf_bytes: bytes) -> ExtractionResult:
         errors: List[str] = []

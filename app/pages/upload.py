@@ -9,6 +9,7 @@ from nicegui import ui
 from nicegui.events import UploadEventArguments
 
 from app.models.transaction import Transaction
+from app.parsers.base import ParserError
 from app.services.extraction_service import ExtractionService
 
 
@@ -20,6 +21,12 @@ class UploadPage:
         self.transactions: List[Transaction] = []
         self.openai_status = ui.label().props("class=mb-2")
         self.result_message = ui.label().props("class=mb-2")
+        self.parser_select = ui.select(
+            options=self._parser_options(),
+            value=self.service.selected_parser_name,
+            label="Parser",
+            on_change=self._handle_parser_change,
+        ).props("class=mb-2")
         columns = [
             {
                 "name": "trans_date",
@@ -156,6 +163,19 @@ class UploadPage:
         except Exception:  # pragma: no cover - in-memory uploads
             pass
         return data if isinstance(data, (bytes, bytearray)) else bytes(data)
+
+    def _parser_options(self) -> dict[str, str]:
+        return {name: name.capitalize() for name in self.service.parser_options}
+
+    def _handle_parser_change(self, event) -> None:
+        value = getattr(event, "value", None)
+        if not value:
+            return
+        try:
+            self.service.set_active_parser(value)
+        except ParserError as exc:  # pragma: no cover - defensive UI path
+            ui.notify(str(exc), color="negative")
+        self.result_message.set_text("")
 
 
 def create_page() -> None:
