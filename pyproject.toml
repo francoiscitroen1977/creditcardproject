@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "creditcardproject"
+version = "0.1.0"
+description = "Credit card statement extractor built with NiceGUI and OpenAI"
+authors = [{name = "Your Name"}]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "nicegui>=1.4",
+    "pydantic>=2.5",
+    "python-dotenv>=1.0",
+    "PyPDF2>=3.0",
+    "openai>=1.12",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+]
+
+[project.scripts]
+creditcard-gui = "app.main:run"
