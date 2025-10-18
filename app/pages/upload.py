@@ -57,17 +57,26 @@ class UploadPage:
         ui.upload(on_upload=self.handle_upload, label="Upload PDF Statement", auto_upload=True)
 
     async def handle_upload(self, e: UploadEventArguments) -> None:
-        content = e.content
-        if hasattr(content, "read"):
-            pdf_bytes = content.read()
-            try:
-                content.seek(0)
-            except Exception:  # pragma: no cover - in-memory uploads
-                pass
-        elif isinstance(content, (bytes, bytearray)):
-            pdf_bytes = bytes(content)
+        pdf_bytes: bytes
+
+        if hasattr(e, "content"):
+            content = e.content
+            if hasattr(content, "read"):
+                pdf_bytes = content.read()
+                try:
+                    content.seek(0)
+                except Exception:  # pragma: no cover - in-memory uploads
+                    pass
+            elif isinstance(content, (bytes, bytearray)):
+                pdf_bytes = bytes(content)
+            else:  # pragma: no cover - defensive
+                pdf_bytes = bytes(content)
+        elif hasattr(e, "read"):
+            pdf_bytes = await e.read()
+            if not isinstance(pdf_bytes, (bytes, bytearray)):
+                pdf_bytes = bytes(pdf_bytes)
         else:  # pragma: no cover - defensive
-            pdf_bytes = bytes(content)
+            raise AttributeError("Upload event does not provide file content")
 
         try:
             result = self.service.extract(pdf_bytes)
